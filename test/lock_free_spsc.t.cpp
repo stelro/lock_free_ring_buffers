@@ -2,12 +2,12 @@
 #include "lock_free_spsc.hpp"
 
 TEST(LockFreeSPSC, QueueIsEmpty) {
-    lock_free_spsc_queue<int, 4> q;
+    lock_free_spsc_queue<int> q(4);
 	ASSERT_TRUE(q.empty());
 }
 
 TEST(LockFreeSPSC, QueueIsEmpty_2) {
-    lock_free_spsc_queue<int, 4> q;
+    lock_free_spsc_queue<int> q (4);
 	ASSERT_TRUE(q.empty());
 	EXPECT_TRUE(q.try_push(1));
 	ASSERT_FALSE(q.empty());
@@ -16,7 +16,7 @@ TEST(LockFreeSPSC, QueueIsEmpty_2) {
 }
 
 TEST(LockFreeSPSC, PushTest) {
-    lock_free_spsc_queue<int, 4> q;
+    lock_free_spsc_queue<int> q (4);
 	EXPECT_TRUE(q.try_push(1));
 	const auto front = q.try_pop();
 	ASSERT_TRUE(front.has_value());
@@ -24,7 +24,7 @@ TEST(LockFreeSPSC, PushTest) {
 }
 
 TEST(LockFreeSPSC, PushAndPop) {
-    lock_free_spsc_queue<int, 4> q;
+    lock_free_spsc_queue<int> q (4);
 	EXPECT_TRUE(q.try_push(1));
 	auto front = q.try_pop();
 	ASSERT_TRUE(front.has_value());
@@ -35,7 +35,7 @@ TEST(LockFreeSPSC, PushAndPop) {
 }
 
 TEST(LockFreeSPSC, PushAndPopMultipleValues) {
-    lock_free_spsc_queue<int, 4> q;
+    lock_free_spsc_queue<int> q (4);
 	EXPECT_TRUE(q.try_push(1));
 	EXPECT_TRUE(q.try_push(2));
 	EXPECT_TRUE(q.try_push(3));
@@ -48,7 +48,7 @@ TEST(LockFreeSPSC, PushAndPopMultipleValues) {
 }
 
 TEST(LockFreeSPSC, PushAndPopMultipleValues_2) {
-    lock_free_spsc_queue<int, 4> q;
+    lock_free_spsc_queue<int> q (4);
 
 	EXPECT_TRUE(q.try_push(1));
 	auto front = q.try_pop();

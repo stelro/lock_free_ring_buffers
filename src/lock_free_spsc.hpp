@@ -19,7 +19,7 @@
 // In other words, the Capacity of the Queue is N - 1 
 // That is to simplify some operations and avoid the overhead of holding 
 // an extra atomic to keep track of the size
-template <typename T, std::size_t Size>
+template <typename T>
 class lock_free_spsc_queue {
 public:
 
@@ -27,13 +27,18 @@ public:
 	static_assert(std::is_move_constructible_v<T>, "T must be move constructible");
 	static_assert(std::is_move_assignable_v<T>, "T must be move constructible");
 
-	lock_free_spsc_queue()
-		: head_(0), tail_(0) { }
+	explicit lock_free_spsc_queue(std::size_t capacity)
+		: cap_(capacity)
+		, buffer_(static_cast<T*>(::operator new[](cap_ * sizeof(T))))
+		, head_(0)
+		, tail_(0)
+	{ }
 
 	~lock_free_spsc_queue() {
 		if (!std::is_trivially_destructible_v<T>) {
 			while (try_pop()) ;
 		}
+		::operator delete[](buffer_);
 	}
 
 	bool try_push(T value) noexcept (std::is_nothrow_move_assignable_v<T>) {
@@ -47,7 +52,7 @@ public:
 			return false; // queue is full
 		}
 			
-		new (&buffer_[tail]) T(std::move(value));
+		new (buffer_ + tail) T(std::move(value));
 		
 		tail_.store(next, std::memory_order_release);
 		return true;
@@ -64,31 +69,50 @@ public:
 		}
 
 		T value(std::move(reinterpret_cast<T&>(buffer_[head])));
-		reinterpret_cast<T&>(buffer_[head]).~T();
+		(buffer_ + head)->~T();
 		
 		head_.store(next_(head), std::memory_order_release);
 		return value;
+	}
+	
+	bool try_pop(T& value) noexcept (std::is_nothrow_move_constructible_v<T>) {
+
+		// An acquire load is meant to synchronize with a release from another thread
+		// Since no other thread writes to head_, this is relaxed
+		const auto head = head_.load(std::memory_order_relaxed);
+
+		if (head == tail_.load(std::memory_order_acquire)) {
+			return false; // queue is empty
+		}
+
+		value = std::move(reinterpret_cast<T&>(buffer_[head]));
+		(buffer_ + head)->~T();
+		
+		head_.store(next_(head), std::memory_order_release);
+		return true;
 	}
 
 	bool empty() const noexcept {  
 		return head_.load(std::memory_order_acquire) == tail_.load(std::memory_order_acquire);
 	}
 
-	std::size_t capacity() const noexcept { return Size - 1; }
+	std::size_t capacity() const noexcept { return cap_ - 1; }
 	// maybe_size - Getting a consistent head and tail for a size is not trivial
 	// as the size can be stale at the moment is returned.
 	std::size_t maybe_size() const { 
 		const auto head = head_.load(std::memory_order_relaxed);
 		const auto tail = tail_.load(std::memory_order_relaxed);
-		return (tail - head + Size) % Size; 
+		return (tail - head + cap_) % cap_; 
 	}
 
 private:
-	std::size_t next_(std::size_t i) const noexcept { return (i + 1) % Size; }
+	std::size_t next_(std::size_t i) const noexcept { return (i + 1) % cap_; }
+
+	std::size_t cap_;
 	
 	// Avoid default constructing T objects.
 	// This buffer holds raw, uninitialized memory.
-	T buffer_[Size];
+	T *const buffer_;
 
 	alignas(hardware_destructive_interference_size) std::atomic<std::size_t> head_; // read
 	char pad_[hardware_destructive_interference_size - sizeof(head_)]; // padding to avoid false-sharing

@@ -1,0 +1,17 @@
+/build/
+/.cmake/
+/CMakeFiles/
+/docs/
+
+/CMakeCache.txt
+*.user
+*.suo
+
+*.vcxproj*
+*.code-workspace
+*.idea
+Doxyfile.bak
+.clang-format.bak
+
+# Keep fargo configuration but ignore user-specific settings
+/.fargo/user/

@@ -31,8 +31,26 @@ static void BM_SPSC_Throughput(benchmark::State& state) {
         queue = std::make_unique<lock_free_spsc_queue<std::uint64_t>>(capacity);
     }
 
-    state.counters["capacity"] = static_cast<double>(capacity);
-    state.counters["items/iter"] = static_cast<double>(items);
+    //state.counters["capacity"] = static_cast<double>(capacity);
+    //state.counters["items/iter"] = static_cast<double>(items);
+
+	// Per-thread constants (avoid being summed)
+	state.counters["capacity"] =
+		benchmark::Counter(static_cast<double>(capacity),
+						   benchmark::Counter::kAvgThreads);
+
+	state.counters["items/s"] =
+		benchmark::Counter(static_cast<double>(items),
+						   benchmark::Counter::kAvgThreads);
+
+	// Total system throughput (producer->consumer transfers per second).
+	// Report it once (thread 0). Do NOT use kAvgThreads here.
+	if (state.thread_index() == 0) {
+		state.counters["throughput_total"] =
+			benchmark::Counter(static_cast<double>(items),
+							   benchmark::Counter::kIsRate |
+							   benchmark::Counter::kIsIterationInvariantRate);
+	}
 
     for (auto _ : state) {
         state.PauseTiming();
@@ -80,6 +98,7 @@ BENCHMARK(BM_SPSC_Throughput)
     ->Args({1 << 20, 1 << 15})
     ->Iterations(5)
     ->UseRealTime()              
+	//->Repetitions(5)->ReportAggregatesOnly(true)
     ->Threads(2);
 
 BENCHMARK_MAIN();

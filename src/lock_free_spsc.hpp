@@ -4,6 +4,7 @@
 #include <optional>
 #include <type_traits>
 #include <new>
+#include <cassert>
 
 #ifdef __cpp_lib_hardware_interference_size
     using std::hardware_constructive_interference_size;
@@ -26,13 +27,16 @@ public:
 	// Ensure at least T is move constructible
 	static_assert(std::is_move_constructible_v<T>, "T must be move constructible");
 	static_assert(std::is_move_assignable_v<T>, "T must be move constructible");
+	
 
 	explicit lock_free_spsc_queue(std::size_t capacity)
 		: cap_(capacity)
 		, buffer_(static_cast<T*>(::operator new[](cap_ * sizeof(T))))
 		, head_(0)
 		, tail_(0)
-	{ }
+	{ 
+		assert((cap_ & (cap_ - 1)) == 0);
+	}
 
 	~lock_free_spsc_queue() {
 		if (!std::is_trivially_destructible_v<T>) {
@@ -106,7 +110,8 @@ public:
 	}
 
 private:
-	std::size_t next_(std::size_t i) const noexcept { return (i + 1) % cap_; }
+	std::size_t next_(std::size_t i) const noexcept { return (i+1) & (cap_-1); }
+	//std::size_t next_(std::size_t i) const noexcept { return (i + 1) % cap_; }
 
 	std::size_t cap_;
 	
@@ -117,6 +122,7 @@ private:
 	alignas(hardware_destructive_interference_size) std::atomic<std::size_t> head_; // read
 	char pad_[hardware_destructive_interference_size - sizeof(head_)]; // padding to avoid false-sharing
 	alignas(hardware_destructive_interference_size) std::atomic<std::size_t> tail_; // write
+	char pad_2[hardware_destructive_interference_size - sizeof(tail_)]; // padding to avoid false-sharing
 	
 };
 

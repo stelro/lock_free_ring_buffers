@@ -5,18 +5,24 @@
 
 int main() {
 
-	mpmc_bounded_queue<int> q(8);
+	mpmc_bounded_queue<int> q(4);
 
-	q.try_enqueue(1);
-	q.try_enqueue(2);
-	q.try_enqueue(3);
-	q.try_enqueue(4);
-
-	for (int i = 0; i < 4; i++) {
-		int val = 0;
-		q.try_dequeue(val);
-		std::cout << "dequeued: " << val << std::endl;
+	for (int i = 0; i < 6; i++) {
+		if (q.try_enqueue(i)) {
+			std::cout << "enqueue: " << i << std::endl;
+		} else {
+			std::cout << "Failed to enc for index: " << i << std::endl;
+		}
 	}
+
+	// for (int i = 0; i < 6; i++) {
+	// 	int val = 0;
+	// 	if (q.try_dequeue(val)) {
+	// 		std::cout << "dequeued: " << val << std::endl;
+	// 	} else {
+	// 		std::cout << "Failed to deq for index: " << i << std::endl;
+	// 	}
+	// }
 
     return 0;
 }

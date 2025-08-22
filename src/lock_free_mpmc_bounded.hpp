@@ -47,6 +47,9 @@ public:
 
 	mpmc_bounded_queue(const mpmc_bounded_queue&) = delete;
 	mpmc_bounded_queue& operator =(const mpmc_bounded_queue&) = delete;
+	mpmc_bounded_queue(mpmc_bounded_queue&&) = delete;
+	mpmc_bounded_queue& operator =(mpmc_bounded_queue&&) = delete;
+
 
 	// Returns false if queue is full (non-blocking)
 	bool try_enqueue(T value) {

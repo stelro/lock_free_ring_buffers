@@ -1,28 +1,36 @@
 #include <iostream>
 #include <stdexcept>
+#include <chrono>
+#include <thread>
 
-#include "lock_free_mpmc_bounded.hpp"
+#include "bounded_mpmc_pool.hpp"
+
+using namespace stel;
 
 int main() {
 
-	mpmc_bounded_queue<int> q(4);
+	bounded_mpmc_pool pool(16, 256);
 
-	for (int i = 0; i < 6; i++) {
-		if (q.try_enqueue(i)) {
-			std::cout << "enqueue: " << i << std::endl;
-		} else {
-			std::cout << "Failed to enc for index: " << i << std::endl;
-		}
-	}
+	pool.submit([]() {
+		std::cout << "Hello world from task 1\n";
+	});
 
-	// for (int i = 0; i < 6; i++) {
-	// 	int val = 0;
-	// 	if (q.try_dequeue(val)) {
-	// 		std::cout << "dequeued: " << val << std::endl;
-	// 	} else {
-	// 		std::cout << "Failed to deq for index: " << i << std::endl;
-	// 	}
-	// }
+	pool.submit([]() {
+		std::this_thread::sleep_for(std::chrono::seconds(2));
+		std::cout << "Hello world from task 2 - task 2 goes to sleep for 2 seconds\n";
+	});
 
-    return 0;
+	pool.submit([]() {
+		std::this_thread::sleep_for(std::chrono::milliseconds(500));
+		std::cout << "Hello world from task 3 - task 3 goes to sleep for 500 milliseconds\n";
+	});
+
+	pool.submit([]() {
+		std::cout << "Hello world from task 4\n";
+	});
+
+
+	std::this_thread::sleep_for(std::chrono::seconds(4));
+
+	return 0;
 }

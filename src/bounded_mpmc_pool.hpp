@@ -34,16 +34,17 @@ public:
 	template <typename F>
 	bool submit(F&& f) {
 		Task t(std::forward<F>(f));
+		if (!t) return false;
 
 		// Fast path: try to enqueue
-		if (q_.try_enqueue(Task(std::move(t)))) {
+		if (q_.try_enqueue(t)) {
 			sem_.release(); // Signal "work available"
 			return true;
 		}
 
 		// Queue full policy - both are bad, second is worse
-		Task run_now(std::move(t));
-		run_now();
+		// caller-runs.
+		t();
 		return true;
 
 		// Other option, block/spin until space is available (can deadlock without care)
@@ -88,6 +89,10 @@ private:
 				// Backoff a tiny bit then retry or bail if stopping.
 				if (stop_.load(std::memory_order_relaxed)) return;
 				std::this_thread::yield();
+			}
+			if (!task) {
+				// Should never happen! If it does, queue handed us an empty slot
+				std::terminate();
 			}
 			task();
 		}

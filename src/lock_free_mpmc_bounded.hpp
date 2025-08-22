@@ -90,9 +90,9 @@ public:
 
 	std::size_t capacity() const noexcept { return capacity_; }
 
-	// get size on fast MPMC isn't free.
-	// We can have 3 choices:
-	// 1) Don't provide size at all (rely on empty()/full() instead)
+	// Get size on fast MPMC isn't free.
+	// We can have 3 options:
+	// 1) Don't provide size at all (rely on empty() / full() instead)
 	// 2) Approximate size (good enough for monitoring)
 	// 3) Exact size (adding extra atomics - costs throughput)
 	//
